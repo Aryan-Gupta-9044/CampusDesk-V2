@@ -1,0 +1,7 @@
+# Features
+
+**Implemented & tested at the data/logic level:** role-based sidebar layout with breadcrumbs, collapsible desktop sidebar and mobile drawer; student / parent (multi-child) / teacher / admin dashboards; Action-required panel; admin System-health panel; weekly timetable grid with current/next class and conflict detection; Academic Report (profile, class teacher, guardian, subject-wise attendance, exam-wise marks, summary, print/PDF, CSV); fees with DB-enforced state machine, verification queue, receipts, payment history, ledger with filters + pagination + CSV; results review-before-publish with incomplete detection; notifications (triggers + realtime + centre); role-aware search; atomic attendance saving; leave overlap/date rules; private documents with categories and signed URLs (V1 feature retained).
+
+**Retained from V1 unchanged (not re-audited line by line):** notices, events, leave pages, teacher chat, student/teacher CSV import, audit log, class/subject management, marks entry, settings/password reset.
+
+**Not implemented (be aware):** threaded teacher↔parent/student conversations with follow-ups and read receipts; notice attachments; event registration UI (columns exist); leave-type / rejection-reason UI; CSV import *preview with duplicate/invalid summary*; CSV export for students and attendance; admin search by student ID / employee ID / phone; monthly attendance trend and date-range filter on attendance; attendance-threshold alert notifications (an *absence* notification exists); component-level browser tests.
