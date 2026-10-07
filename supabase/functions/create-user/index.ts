@@ -7,6 +7,8 @@
 //
 // Deploy:   supabase functions deploy create-user
 // Secrets:  SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY are injected by Supabase automatically.
+// With migration 008 installed, new Auth users start as `pending`; this function (service role, caller verified as admin)
+// is the server-side path that creates an already-approved account in one step.
 // NOTE: not executed in the CampusDesk build environment (no Supabase/Deno runtime) - see docs/TESTING.md.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
@@ -61,6 +63,7 @@ Deno.serve(async (req) => {
 
   const { error: pErr } = await admin.from("profiles").upsert({
     id, role, full_name: fullName.trim(), email: email.trim().toLowerCase(), phone: phone ?? null, status: "active",
+    requested_role: null, decided_by: userData.user.id, decided_at: new Date().toISOString(),   // admin-created = pre-approved (migration 008 columns)
   });
   if (pErr) return rollback("profile_failed", pErr.message);
 

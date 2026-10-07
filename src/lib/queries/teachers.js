@@ -1,4 +1,5 @@
 import { createAccountViaEdge, useEdgeFunctions } from "../services/createUser";
+import { provisionIfAvailable } from "../services/accounts";
 import { supabase } from "../supabaseClient";
 import { getAdminActionClient } from "../adminActionClient";
 
@@ -34,7 +35,9 @@ export async function createTeacher({ fullName, email, password, employeeId, dep
 
   const userId = signUpData.user.id;
 
-  // New accounts always start as 'student'; the signed-in admin promotes to 'teacher'.
+  if (await provisionIfAvailable(userId, "teacher", { employee_id: employeeId, department, qualification, joining_date: joiningDate })) return userId;
+
+  // Pre-008 database: the signed-in admin promotes to 'teacher'.
   const { error: roleError } = await supabase.from("profiles").update({ role: "teacher" }).eq("id", userId);
   if (roleError) throw roleError;
 

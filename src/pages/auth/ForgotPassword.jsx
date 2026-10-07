@@ -1,3 +1,4 @@
+import ThemeToggle from "../../components/layout/ThemeToggle";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -26,6 +27,7 @@ function ForgotPassword() {
 
   return (
     <div className="page form-page auth-page">
+      <div className="auth-theme"><ThemeToggle /></div>
       <section className="page-heading">
         <div>
           <p className="eyebrow">Account recovery</p>

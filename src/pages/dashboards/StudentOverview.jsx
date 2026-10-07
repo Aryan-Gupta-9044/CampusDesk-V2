@@ -85,7 +85,7 @@ export default function StudentOverview({ studentId, requesterId, viewer = "stud
                 <PercentBarChart data={performance.subjectScores} nameKey="name" valueKey="score" />
               </Card>
               <Card title="Subject attendance" subtitle="Where is attendance lowest?">
-                <PercentBarChart data={attendance.subjects} nameKey="name" valueKey="pct" color="var(--chart-2)" label="Attendance" />
+                <PercentBarChart data={attendance.subjects} nameKey="name" valueKey="pct" color="var(--chart-5)" label="Attendance" />
               </Card>
             </div>
 

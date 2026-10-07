@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { updateMyProfile, updateMyPassword } from "../../lib/queries/account";
 import { uploadAvatar } from "../../lib/storage";
+import { useTheme } from "../../context/ThemeContext";
 import RoleStamp from "../../components/RoleStamp";
 
 function initials(name) {
@@ -14,6 +15,7 @@ function initials(name) {
 }
 
 function Settings() {
+  const { mode, setMode } = useTheme();
   const { user, profile, role, refreshProfile } = useAuth();
 
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -118,6 +120,15 @@ function Settings() {
           </label>
         </div>
       </div>
+
+      <section className="panel" aria-labelledby="appearance-title">
+        <div className="panel-heading"><h2 id="appearance-title" style={{ fontSize: 16 }}>Appearance</h2></div>
+        <p className="lede">Choose how CampusDesk looks. “Match device” follows your phone or computer setting.</p>
+        <div className="seg" role="group" aria-label="Theme">
+          {[["light", "Light"], ["dark", "Dark"], ["system", "Match device"]].map(([v, l]) => (
+            <button key={v} type="button" aria-pressed={mode === v} onClick={() => setMode(v)}>{l}</button>))}
+        </div>
+      </section>
 
       <form onSubmit={handleProfileSubmit} className="student-form" style={{ marginTop: "24px" }}>
         <p className="eyebrow">Profile</p>

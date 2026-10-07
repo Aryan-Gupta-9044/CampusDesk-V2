@@ -2,7 +2,7 @@
 
 | Folder | Use it when | Safe on an existing V1 database? |
 |---|---|---|
-| **`migrations/`** (001 → 007) | You already run CampusDesk **V1** and want V2 on the *same* Supabase project (Option A) | **Yes** — additive, idempotent, no `DROP TABLE` / `DELETE` / `TRUNCATE` |
+| **`migrations/`** (001 → 008) | You already run CampusDesk **V1** and want V2 on the *same* Supabase project (Option A) | **Yes** — additive, idempotent, no `DROP TABLE` / `DELETE` / `TRUNCATE` |
 | `migrations/900_OPTIONAL_security_hardening.sql` | Only after reading it (changes V1 signup behaviour) | **Optional — not in the default path** |
 | **`v2-fresh/`** (schema → functions → triggers → rls → storage → seed) | You create a **brand-new** Supabase project for V2 / demo (Option B) | **NO — FRESH DATABASE ONLY** |
 | `audit/rls_audit.sql` | You want to review your live V1 policies | Yes — read-only SELECTs |

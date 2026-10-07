@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import { DashboardFrame, DashboardSkeleton } from "../../components/dashboard/Section";
+import ActionRequired from "../../components/dashboard/ActionRequired";
 import { ActivityFeed, UpcomingEvents } from "../../components/dashboard/Widgets";
 import { ClassBarChart, DistributionChart, FeeChart } from "../../components/charts/Charts";
 import Badge from "../../components/ui/Badge";
@@ -23,21 +24,24 @@ export default function AdminDashboard() {
   return (
     <DashboardFrame loading={loading} error={error} onRetry={reload} skeleton={<DashboardSkeleton />}>
       {data && (() => {
-        const { kpis, perClass, pendingLeave, pendingPayments, audit, events, health } = data;
+        const { kpis, perClass, pendingLeave, pendingPayments, audit, events, health, accountCounts } = data;
+        const pendingRegs = Number(accountCounts?.pending) || 0;
         const att = attendanceStatus(kpis.attendancePct);
         const approvals = pendingLeave.length + pendingPayments.length;
         return (
           <>
             <DashboardHeader name={profile?.full_name?.split(" ")[0]} subtitle="Institution overview"
               actions={[{ label: "Post Notice", to: "/notices" }, { label: "Add Event", to: "/events" }, { label: "Add Student", to: "/students/new" }]} />
+            <ActionRequired items={pendingRegs ? [{ key: "regs", tone: "warning", text: `${pendingRegs} new registration${pendingRegs === 1 ? "" : "s"} waiting for your approval`, to: "/account-requests" }] : []} />
             <div className="stat-grid">
+              {accountCounts && <StatCard label="Pending registrations" icon="inbox" tone={pendingRegs ? "rose" : "success"} value={String(pendingRegs)} hint={pendingRegs ? "Review in Account Requests" : "None waiting"} />}
               <StatCard label="Total students" icon="users" tone="primary" value={String(kpis.students)} />
-              <StatCard label="Total teachers" icon="user" tone="info" value={String(kpis.teachers)} />
-              <StatCard label="Total classes" icon="book" tone="muted" value={String(kpis.classes)} />
+              <StatCard label="Total teachers" icon="user" tone="violet" value={String(kpis.teachers)} />
+              <StatCard label="Total classes" icon="book" tone="info" value={String(kpis.classes)} />
               <StatCard label="Overall attendance" icon="check" tone={att.tone} value={pctText(kpis.attendancePct)} status={att} hint="Last 30 days" />
               <StatCard label="Fees collected" icon="wallet" tone="success" value={inr(kpis.feesCollected)} />
               <StatCard label="Pending fees" icon="wallet" tone={kpis.pendingFees ? "warning" : "success"} value={inr(kpis.pendingFees)} hint="Outstanding (confirmed basis)" />
-              <StatCard label="Pending payments" icon="clock" tone={kpis.pendingPayments ? "info" : "success"} value={String(kpis.pendingPayments)} hint="Awaiting verification" />
+              <StatCard label="Pending payments" icon="clock" tone={kpis.pendingPayments ? "rose" : "success"} value={String(kpis.pendingPayments)} hint="Awaiting verification" />
               <StatCard label="Pending leave" icon="file" tone={kpis.pendingLeave ? "warning" : "success"} value={String(kpis.pendingLeave)} hint="Awaiting decision" />
               <StatCard label="Upcoming exams" icon="book" tone="info" value={String(kpis.upcomingExams)} />
             </div>

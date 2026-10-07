@@ -1,7 +1,12 @@
 import { supabase } from "../supabaseClient";
 
+// The reset link must return to the app's base URL (no #fragment): Supabase appends ?code=... for PKCE.
+// Add this URL to Supabase -> Authentication -> URL Configuration -> Redirect URLs.
+export const appBaseUrl = () => new URL(import.meta.env.BASE_URL || "./", window.location.href).href;
+
 export async function requestPasswordReset(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  try { localStorage.setItem("campusdesk-recovery-requested", String(Date.now())); } catch { /* storage unavailable */ }
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: appBaseUrl() });
   if (error) throw error;
 }
 

@@ -83,7 +83,7 @@ function ImportTeachers() {
 
       <div className="student-form">
         <p className="eyebrow">Format</p>
-        <pre style={{ background: "#f6f7f5", padding: "12px", fontSize: "12px", overflowX: "auto" }}>{SAMPLE}</pre>
+        <pre style={{ background: "var(--surface-2)", padding: "12px", fontSize: "12px", overflowX: "auto" }}>{SAMPLE}</pre>
 
         <label style={{ display: "block", marginTop: "16px" }}>
           Upload a .csv file

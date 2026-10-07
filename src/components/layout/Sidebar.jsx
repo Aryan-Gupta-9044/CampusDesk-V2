@@ -3,7 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 
 import { useAuth } from "../../context/AuthContext";
 import { NAV, NAV_ICON, PROFILE_MENU, isActivePath } from "../../config/navigation";
-import { initials, ROLE_LABEL } from "../../lib/format";
+import { avatarClass, initials, ROLE_LABEL } from "../../lib/format";
 import Icon from "../ui/Icon";
 import GlobalSearch from "./GlobalSearch";
 
@@ -45,7 +45,7 @@ export default function Sidebar({ collapsed, mobileOpen, onClose, onLogout, path
             <Icon name="logout" size={18} /><span className="side-label">Logout</span>
           </button>
           <div className="side-user">
-            <span className="avatar">{profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : initials(profile?.full_name)}</span>
+            <span className={`avatar ${avatarClass(profile?.full_name)}`}>{profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : initials(profile?.full_name)}</span>
             <span className="side-label"><b>{profile?.full_name}</b><br /><small>{ROLE_LABEL[role]}</small></span>
           </div>
         </div>

@@ -97,7 +97,7 @@ function ImportStudents() {
           Header row required, exactly these columns (className/section must match an existing class, or the student is
           created unassigned):
         </p>
-        <pre style={{ background: "#f6f7f5", padding: "12px", fontSize: "12px", overflowX: "auto" }}>{SAMPLE}</pre>
+        <pre style={{ background: "var(--surface-2)", padding: "12px", fontSize: "12px", overflowX: "auto" }}>{SAMPLE}</pre>
 
         <label style={{ display: "block", marginTop: "16px" }}>
           Upload a .csv file

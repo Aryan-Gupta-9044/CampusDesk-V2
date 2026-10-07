@@ -229,7 +229,7 @@ function Classes() {
               <div
                 key={cls.id}
                 className="recent-row"
-                style={{ cursor: "pointer", background: selectedClassId === cls.id ? "#f6f7f5" : "transparent" }}
+                style={{ cursor: "pointer", background: selectedClassId === cls.id ? "var(--surface-2)" : "transparent" }}
                 onClick={() => handleSelectClass(cls.id)}
               >
                 <span className="student-summary">

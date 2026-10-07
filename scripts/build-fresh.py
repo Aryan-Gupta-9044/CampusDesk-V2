@@ -9,6 +9,8 @@ fresh = os.path.join(root, 'supabase/v2-fresh')
 parts = {'SCHEMA': [], 'FUNCTIONS': [], 'TRIGGERS': [], 'POLICIES': []}
 for f in mig:
     name = os.path.basename(f)
+    if 'OPTIONAL' in name:      # 900 is superseded by 008 and must never be combined with it
+        continue
     text = open(f).read()
     for m in re.finditer(r'^-- @@(SCHEMA|FUNCTIONS|TRIGGERS|POLICIES)\n(.*?)(?=^-- @@|\Z)', text, re.S | re.M):
         parts[m.group(1)].append(f'-- ---- from migrations/{name} ----\n{m.group(2).strip()}\n')

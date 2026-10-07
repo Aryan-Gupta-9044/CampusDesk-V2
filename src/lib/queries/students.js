@@ -1,4 +1,5 @@
 import { createAccountViaEdge, useEdgeFunctions } from "../services/createUser";
+import { provisionIfAvailable } from "../services/accounts";
 import { supabase } from "../supabaseClient";
 import { getAdminActionClient } from "../adminActionClient";
 
@@ -53,6 +54,9 @@ export async function createStudent({ fullName, email, password, rollNo, classId
   if (signUpError) throw signUpError;
 
   const userId = signUpData.user.id;
+
+  // Database with migration 008: provision atomically (new accounts are pending until provisioned)
+  if (await provisionIfAvailable(userId, "student", { roll_no: rollNo, class_id: classId, dob, gender, address })) return userId;
 
   const { error: insertError } = await supabase.from("students").insert({
     id: userId,
@@ -116,8 +120,9 @@ export async function createParentAndLink(studentId, { fullName, email, password
   });
   if (signUpError) throw signUpError;
 
-  // New accounts always start as 'student' (the database ignores any role sent
-  // at signup). The signed-in admin promotes the account to 'parent'.
+  if (await provisionIfAvailable(signUpData.user.id, "parent", { child_ids: [studentId] })) return signUpData.user.id;
+
+  // Pre-008 database: the signed-in admin promotes the account to 'parent'.
   const { error: roleError } = await supabase.from("profiles").update({ role: "parent" }).eq("id", signUpData.user.id);
   if (roleError) throw roleError;
 

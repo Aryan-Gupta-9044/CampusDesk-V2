@@ -94,8 +94,8 @@ drop trigger if exists timetable_conflict_guard on public.timetable;
 create trigger timetable_conflict_guard before insert or update on public.timetable
   for each row execute procedure public.timetable_conflict_guard();
 
--- ---- from migrations/900_OPTIONAL_security_hardening.sql ----
+-- ---- from migrations/008_v2_auth_account_management.sql ----
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
 drop trigger if exists guard_profile_update on public.profiles;
-create trigger guard_profile_update before update on public.profiles for each row execute procedure public.guard_profile_update();
+create trigger guard_profile_update before insert or update on public.profiles for each row execute procedure public.guard_profile_update();

@@ -163,6 +163,124 @@ o=$(q $S1 "select count(*) from notifications where user_id <> auth.uid();"); t 
 o=$(q $A "select count(*) from students;"); t "admin sees all students" "^12$" "$o"
 o=$(q $S1 "insert into storage.objects(bucket_id,name) values ('documents','$(raw "select id from auth.users where email='student2@campusdesk.com'")/secret.pdf');"); t "private documents: cannot write into another user's folder" "row-level security" "$o"
 
+echo "== ACCOUNT LIFECYCLE (registration -> approval -> provisioning)"
+NEWSTU=newstu@example.org; NEWPAR=newpar@example.org; NEWTCH=newtch@example.org; NEWREJ=newrej@example.org; EVIL=evil@example.org; NEWINC=newinc@example.org
+reg() { q - "insert into auth.users(email, raw_user_meta_data) values ('$1', jsonb_build_object('role','admin','requested_role','$2','full_name','$3','phone','+91 90000 00001'));"; }
+reg $NEWSTU student "New Student" >/dev/null; reg $NEWPAR parent "New Parent" >/dev/null; reg $NEWTCH teacher "New Teacher" >/dev/null
+reg $NEWREJ student "Rejected Person" >/dev/null; reg $NEWINC teacher "Incomplete Person" >/dev/null
+q - "insert into auth.users(email, raw_user_meta_data) values ('$EVIL', jsonb_build_object('role','admin','requested_role','admin','full_name','Evil'));" >/dev/null
+o=$(q - "select status, role, requested_role from profiles where email='$NEWSTU';"); t "TEST5/2: signup (even claiming role=admin) -> PENDING, requested role stored separately" "^pending\|student\|student$" "$o"
+o=$(q - "select status, role, coalesce(requested_role,'none') from profiles where email='$EVIL';"); t "TEST17: public signup can NOT request or become admin" "^pending\|student\|none$" "$o"
+o=$(q - "select count(*) from notifications n join profiles p on p.id=n.user_id where p.role='admin' and n.type='account' and n.body like '%New Student%';"); t "admin notified of the new registration" "^1$" "$o"
+o=$(q - "select count(*) from audit_logs where action='account_registered';"); t "registration written to audit log" "^[1-9]" "$o"
+
+echo "-- pending account is locked out of application data"
+o=$(q $NEWSTU "select count(*) from classes;"); t "pending: cannot read classes" "^0$" "$o"
+o=$(q $NEWSTU "select count(*) from notices;"); t "pending: cannot read notices" "^0$" "$o"
+o=$(q $NEWSTU "select count(*) from events;"); t "pending: cannot read events" "^0$" "$o"
+o=$(q $NEWSTU "select count(*) from profiles where id <> auth.uid();"); t "pending: cannot read other people's profiles (emails/phones)" "^0$" "$o"
+o=$(q $NEWSTU "select count(*) from profiles where id = auth.uid();"); t "pending: can read own profile" "^1$" "$o"
+o=$(q $NEWSTU "select get_my_role() is null, is_admin();"); t "pending: no effective role, not admin" "^t\|f$" "$o"
+o=$(q $NEWSTU "select my_account_state()->>'status';"); t "my_account_state() reports pending" "^pending$" "$o"
+o=$(q $NEWSTU "select get_student_report($(uid $S1));"); t "pending: cannot open another student's report" "not_allowed" "$o"
+echo "-- privilege escalation attempts from the browser"
+o=$(q $NEWSTU "update profiles set role='admin' where id=auth.uid();"); t "TEST13/15: cannot change own role" "role_locked" "$o"
+o=$(q $NEWSTU "update profiles set status='active' where id=auth.uid();"); t "TEST13/16: cannot activate self" "role_locked" "$o"
+o=$(q $NEWSTU "update profiles set requested_role='teacher' where id=auth.uid();"); t "cannot change requested_role after submitting" "role_locked" "$o"
+o=$(q $NEWSTU "update profiles set decided_at=now() where id=auth.uid();"); t "cannot forge approval fields" "role_locked" "$o"
+o=$(q $NEWSTU "insert into profiles(id,role,status,email) values (gen_random_uuid(),'admin','active','x@x');"); t "cannot insert a profile row" "role_locked|row-level security" "$o"
+o=$(q $NEWSTU "insert into students(id,roll_no) values (auth.uid(),'HACK1');"); t "cannot provision self as a student" "row-level security" "$o"
+o=$(q $NEWSTU "insert into teachers(id,employee_id) values (auth.uid(),'HACK');"); t "cannot provision self as a teacher" "row-level security" "$o"
+o=$(q $NEWSTU "update profiles set phone='+91 91111 11111' where id=auth.uid(); select 'ok';"); t "safe self-edit (phone) still works" "UPDATE 1|ok" "$o"
+o=$(q $NEWSTU "select admin_provision_account($(uid $NEWSTU),'student','{}'::jsonb,true);"); t "pending: cannot call admin provisioning" "not_allowed" "$o"
+o=$(q $NEWSTU "select admin_promote_to_admin($(uid $NEWSTU));"); t "cannot self-promote to admin" "not_allowed" "$o"
+o=$(q $S1 "select admin_list_accounts();"); t "student cannot list accounts" "not_allowed" "$o"
+o=$(q teacher1@campusdesk.com "select admin_account_counts();"); t "teacher cannot use account admin" "not_allowed" "$o"
+o=$(q $S1 "select * from campusdesk_settings;"); t "settings table is admin-only" "^$|row-level|permission" "$o"
+
+echo "-- admin sees and reviews requests"
+o=$(q $A "select count(*) from admin_list_accounts('pending');"); t "TEST6: admin lists pending requests" "^6$" "$o"
+o=$(q $A "select (admin_account_counts()->>'pending')::int >= 6;"); t "dashboard counter: pending registrations" "^t$" "$o"
+o=$(q $A "select full_name, requested_role, status from admin_list_accounts('pending', 'student', 'New Stu');"); t "TEST7: requested role visible; filter + search work" "^New Student\|student\|pending$" "$o"
+o=$(q $A "select count(*) from admin_list_accounts(null, null, 'campusdesk.com');"); t "search by email" "^2[0-9]$" "$o"
+
+echo "-- student provisioning (TEST 8-10)"
+C10A=$(raw "select id from classes where name='10' and section='A'")
+o=$(q $A "select admin_provision_account($(uid $NEWSTU),'student','{}'::jsonb,true);"); t "activation without required fields is refused" "student_fields_required" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWSTU),'student', jsonb_build_object('roll_no','10A01','class_id','$C10A'), true);"); t "duplicate roll number refused" "roll_exists" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWSTU),'admin','{}'::jsonb,true);"); t "admin is not an assignable role" "invalid_role" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWSTU),'student', jsonb_build_object('roll_no','10A99','class_id','$C10A','dob','2011-04-02','gender','Male','parent_id','$(raw "select id from auth.users where email='parent1@campusdesk.com'")'), true)->>'status';"); t "TEST9: approve & activate -> active" "^active$" "$o"
+o=$(q - "select p.status, p.role, s.roll_no, s.student_code is not null, s.class_id='$C10A', s.parent_id is not null from profiles p join students s on s.id=p.id where p.email='$NEWSTU';"); t "student entity linked to profile (code, class, parent)" "^active\|student\|10A99\|t\|t\|t$" "$o"
+o=$(q $NEWSTU "select my_account_state()->>'status', my_account_state()->>'entity_ok', get_my_role();"); t "TEST10: new student now has an effective student role" "^active\|true\|student$" "$o"
+o=$(q $NEWSTU "select count(*) from classes;"); t "approved student can read application data" "^[1-9]" "$o"
+o=$(q $NEWSTU "select count(*) from students;"); t "approved student sees only their own record" "^1$" "$o"
+o=$(q $NEWSTU "select count(*) from attendance where student_id <> auth.uid();"); t "approved student cannot read other students' data" "^0$" "$o"
+o=$(q $P1 "select count(*) from students where id=$(uid $NEWSTU);"); t "linked parent1 can now see the new student too" "^1$" "$o"
+o=$(q - "select count(*) from notifications n join profiles p on p.id=n.user_id where p.email='$NEWSTU' and n.title like '%approved%';"); t "applicant notified of approval" "^1$" "$o"
+
+echo "-- parent provisioning (TEST 11)"
+CH=$(raw "select id from auth.users where email='student10@campusdesk.com'"); CH2=$(raw "select id from auth.users where email='student3@campusdesk.com'")
+o=$(q $A "select admin_provision_account($(uid $NEWPAR),'parent','{}'::jsonb,true);"); t "parent needs at least one child to activate" "parent_children_required" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWPAR),'parent', jsonb_build_object('child_ids', jsonb_build_array('$CH2')), true);"); t "cannot take a child that belongs to another parent" "child_has_parent" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWPAR),'parent', jsonb_build_object('child_ids', jsonb_build_array('$CH')), true)->>'status';"); t "parent approved with a child -> active" "^active$" "$o"
+o=$(q $NEWPAR "select count(*) from students;"); t "TEST11: parent sees ONLY the linked child" "^1$" "$o"
+o=$(q $NEWPAR "select count(distinct student_id) from attendance;"); t "parent sees attendance of the linked child only" "^1$" "$o"
+o=$(q $NEWPAR "select count(*) from fee_payments where student_id <> '$CH';"); t "parent cannot see other children's fees" "^0$" "$o"
+
+echo "-- teacher provisioning (TEST 12)"
+SUBM=$(raw "select id from subjects where class_id='$C10A' and name='Mathematics'"); C10B=$(raw "select id from classes where name='10' and section='B'"); C11B=$(raw "select id from classes where name='11' and section='B'")
+o=$(q $A "select admin_provision_account($(uid $NEWTCH),'teacher', jsonb_build_object('employee_id','EMP-900'), true);"); t "teacher needs employee id + department" "teacher_fields_required" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWTCH),'teacher', jsonb_build_object('employee_id','EMP-900','department','Mathematics','assignments', jsonb_build_array(jsonb_build_object('class_id','$C11B','subject_id','$SUBM'))), true);"); t "assignment must match subject's class" "invalid_assignment" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWTCH),'teacher', jsonb_build_object('employee_id','EMP-900','department','Mathematics','class_teacher_of', jsonb_build_array('$C10B')), true);"); t "cannot steal another teacher's class-teacher role" "class_has_teacher" "$o"
+o=$(q $A "select admin_provision_account($(uid $NEWTCH),'teacher', jsonb_build_object('employee_id','EMP-900','department','Mathematics','qualification','M.Sc.','assignments', jsonb_build_array(jsonb_build_object('class_id','$C10A','subject_id','$SUBM'))), true)->>'status';"); t "teacher approved with class + subject -> active" "^active$" "$o"
+o=$(q - "select t.employee_id, t.teacher_code is not null, (select count(*) from teacher_subjects where teacher_id=t.id) from teachers t join profiles p on p.id=t.id where p.email='$NEWTCH';"); t "teacher entity + assignment created" "^EMP-900\|t\|1$" "$o"
+o=$(q $NEWTCH "select count(*) from students;"); t "teacher sees only students of assigned classes" "^5$" "$o"
+o=$(q $NEWTCH "select count(*) from fee_payments;"); t "teacher cannot read fees" "^0$" "$o"
+
+echo "-- incomplete / rejected / suspended (TEST 7, 8, 14-16)"
+o=$(q $A "select admin_provision_account($(uid $NEWINC),'teacher', jsonb_build_object('department','Science'), false)->>'status';"); t "approve-but-finish-later -> incomplete" "^incomplete$" "$o"
+o=$(q $NEWINC "select count(*) from classes; select my_account_state()->>'status';"); t "incomplete account gets no application data" "^0$" "$(echo "$o" | head -1)"
+t "incomplete state reported" "incomplete" "$o"
+o=$(q $A "select admin_reject_account($(uid $NEWREJ), 'Not a registered student.')->>'status';"); t "TEST7: reject -> rejected" "^rejected$" "$o"
+o=$(q $NEWREJ "select my_account_state()->>'status', my_account_state()->>'rejection_reason';"); t "rejected user sees reason, status rejected" "^rejected\|Not a registered student\.$" "$o"
+o=$(q $NEWREJ "select count(*) from classes;"); t "rejected: no application data" "^0$" "$o"
+o=$(q $A "select admin_reject_account($(uid $S1), 'x');"); t "cannot 'reject' an active account (suspend instead)" "not_rejectable" "$o"
+o=$(q $A "select admin_suspend_account($(uid $NEWSTU), 'Fees overdue')->>'status';"); t "TEST8: suspend active user" "^suspended$" "$o"
+o=$(q $NEWSTU "select my_account_state()->>'status'; select count(*) from students;"); t "suspended: status reported" "suspended" "$o"
+t "suspended: no application data (DB-enforced)" "^0$" "$(echo "$o" | tail -1)"
+o=$(q $A "select admin_reactivate_account($(uid $NEWSTU))->>'status';"); t "TEST15: reactivate -> active again" "^active$" "$o"
+o=$(q $NEWSTU "select count(*) from students;"); t "reactivated student has access again" "^1$" "$o"
+o=$(q $A "select admin_suspend_account($(uid $A));"); t "admin cannot suspend self" "cannot_modify_self" "$o"
+o=$(q $A "select admin_provision_account($(uid $A),'teacher','{}'::jsonb,true);"); t "cannot convert an admin via provisioning" "cannot_modify_self" "$o"
+o=$(q $A "select admin_provision_account($(uid $S1),'teacher', jsonb_build_object('employee_id','E1','department','X'), true);"); t "role change blocked when the account has records" "role_change_blocked" "$o"
+
+echo "-- admin creation is admin-only; admin loses power when suspended"
+o=$(q $A "select admin_promote_to_admin($(uid $NEWINC));"); t "cannot promote a non-active account" "not_active" "$o"
+o=$(q $A "select admin_promote_to_admin($(uid teacher2@campusdesk.com))->>'role';"); t "existing admin promotes teacher2 to admin" "^admin$" "$o"
+o=$(q teacher2@campusdesk.com "select is_admin(), (admin_account_counts()->>'admins')::int;"); t "new admin has admin tools" "^t\|2$" "$o"
+o=$(q teacher2@campusdesk.com "select admin_suspend_account($(uid $A))->>'status';"); t "second admin can suspend the first (not the last admin)" "^suspended$" "$o"
+o=$(q $A "select is_admin(); select admin_account_counts();"); t "a suspended admin is no longer an admin" "not_allowed" "$o"
+o=$(q teacher2@campusdesk.com "select admin_reactivate_account($(uid $A))->>'status';"); t "…and can be reactivated" "^active$" "$o"
+
+echo "-- existing V1/V2 accounts keep working (TEST 1-4, 19)"
+o=$(q - "select count(*) from profiles where email like '%@campusdesk.com' and status='active';"); t "all seeded/existing accounts remain active" "^24$" "$o"
+o=$(q $A "select get_my_role(), is_admin(), (select count(*) from students);"); t "TEST1: existing admin still admin, sees data" "^admin\|t\|1[0-9]$" "$o"
+o=$(q $S1 "select get_my_role(), (select count(*) from students), (select count(*) from classes) > 0;"); t "TEST2: existing student still works" "^student\|1\|t$" "$o"
+o=$(q $P1 "select get_my_role(), (select count(*) from students);"); t "TEST3: existing parent still works" "^parent\|[12]$" "$o"
+o=$(q teacher1@campusdesk.com "select get_my_role(), (select count(*) from students) > 0;"); t "TEST4: existing teacher still works" "^teacher\|t$" "$o"
+o=$(q $S1 "update profiles set phone='+91 92222 22222' where id=auth.uid(); select 'ok';"); t "existing users can still edit safe profile fields" "UPDATE 1|ok" "$o"
+
+echo "-- audit trail"
+for a in account_registered account_approved role_assigned student_provisioned teacher_provisioned parent_linked account_rejected account_suspended account_reactivated admin_promoted; do
+  o=$(q - "select count(*) from audit_logs where action='$a';"); t "audit: $a" "^[1-9]" "$o"
+done
+
+echo "-- opt-in legacy mode (V1 signup behaviour) can never create an admin"
+q - "update campusdesk_settings set value='true' where key='allow_legacy_signup_role';" >/dev/null
+q - "insert into auth.users(email, raw_user_meta_data) values ('leg-t@example.org', jsonb_build_object('role','teacher','full_name','Legacy T')), ('leg-a@example.org', jsonb_build_object('role','admin','full_name','Legacy A'));" >/dev/null
+o=$(q - "select email, role, status from profiles where email like 'leg-%' order by email;"); t "legacy flag: teacher signup active (V1 behaviour), admin signup still pending student" "leg-a@example.org\|student\|pending.*leg-t@example.org\|teacher\|active" "$(echo "$o" | tr '\n' ' ')"
+q - "update campusdesk_settings set value='false' where key='allow_legacy_signup_role';" >/dev/null
+
 echo
 echo "RESULT: $PASS passed, $FAIL failed"
 [ $FAIL -eq 0 ]

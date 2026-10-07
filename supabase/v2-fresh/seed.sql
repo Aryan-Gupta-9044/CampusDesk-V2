@@ -88,10 +88,10 @@ select gen_random_uuid(), id::text, id,
        'email', now(), now(), now()
 from demo_users;
 
--- The on_auth_user_created trigger already inserted profiles (as 'student').
+-- The on_auth_user_created trigger already inserted profiles (as 'pending' students).
 -- Set the real role / phone now. (Allowed: SQL editor has no auth.uid().)
 update public.profiles p
-set role = d.role, phone = d.phone, full_name = d.full_name
+set role = d.role, phone = d.phone, full_name = d.full_name, status = 'active', requested_role = null
 from demo_users d where d.id = p.id;
 
 -- ---------------------------------------------------------------------

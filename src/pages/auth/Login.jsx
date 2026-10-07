@@ -1,8 +1,9 @@
+import ThemeToggle from "../../components/layout/ThemeToggle";
 import React, { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
+import { landingFor } from "../../auth/accessRules";
 import { useAuth } from "../../context/AuthContext";
-import { friendlyError } from "../../lib/errors";
 
 // DEMO accounts created by database/04_seed_data.sql. Shown only to help people
 // try the app; they still sign in through real Supabase authentication.
@@ -14,15 +15,19 @@ const DEMO = [
 ];
 
 function Login() {
-  const { signIn, session, profile } = useAuth();
+  const { signIn, state, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [remember, setRemember] = useState(true);
   const redirectTo = location.state?.from?.pathname || "/";
 
-  if (session && profile) return <Navigate to="/" replace />;
+  // Already signed in: go wherever the account state says (dashboard, pending page, ...)
+  if (session && state !== "loading" && state !== "unauthenticated" && state !== "error" && state !== "no_profile") {
+    return <Navigate to={landingFor(state)} replace />;
+  }
 
   const handleChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -32,12 +37,13 @@ function Login() {
     setSubmitting(true);
     const { error: err } = await signIn(form);
     setSubmitting(false);
-    if (err) { setError(friendlyError(err)); return; }
+    if (err) { setError(err.message); return; }
     navigate(redirectTo, { replace: true });
   };
 
   return (
     <div className="auth-page">
+      <div className="auth-theme"><ThemeToggle /></div>
       <div className="login-wrap">
         <div className="login-side">
           <span className="brand-mark" style={{ background: "#fff", color: "var(--primary)" }} aria-hidden="true">C</span>
@@ -55,6 +61,9 @@ function Login() {
           </label>
           <label>Password
             <input type="password" name="password" value={form.password} onChange={handleChange} required autoComplete="current-password" />
+          </label>
+          <label style={{ flexDirection: "row", alignItems: "center", gap: 8, fontWeight: 500 }}>
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Keep me signed in on this device
           </label>
           <button className="btn btn-primary" type="submit" disabled={submitting}>{submitting ? "Logging in…" : "Log in"}</button>
           <div style={{ display: "flex", justifyContent: "space-between" }}>

@@ -11,7 +11,8 @@ Run **in order**, each in the Supabase SQL Editor. Every file is idempotent (saf
 | 005 | `005_v2_notifications.sql` | Notification + audit triggers (notice, result, fee, leave, timetable, event, query, absence) |
 | 006 | `006_v2_leave_attendance_timetable.sql` | Leave overlap/date rules, timetable conflict rules, `save_attendance`, `attendance_summary_by_class` |
 | 007 | `007_v2_indexes.sql` | Performance indexes |
-| — | `900_OPTIONAL_security_hardening.sql` | **Optional.** Signup always creates `student`; non-admins cannot change their role. Changes V1 behaviour — read the header first |
+| 008 | `008_v2_auth_account_management.sql` | Registration approval lifecycle: pending/rejected/incomplete states, requested role, secure signup trigger, role-lock trigger, restrictive RLS for non-active accounts, admin provisioning functions. **Read its header first** (changes V1 signup behaviour; see `docs/AUTH_ACCOUNT_MANAGEMENT.md`) |
+| — | `900_OPTIONAL_security_hardening.sql` (**superseded by 008 — do not run after 008**) | **Optional.** Signup always creates `student`; non-admins cannot change their role. Changes V1 behaviour — read the header first |
 
 Not touched: your existing V1 tables' rows, existing V1 RLS policies, storage buckets.
 Triggers/constraints validate **new** writes only; existing rows are never re-checked or modified (except the NULL `student_code`/`teacher_code` backfill and copying V1's payment note into `reference_note`).

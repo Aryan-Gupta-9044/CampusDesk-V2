@@ -44,7 +44,7 @@ export default function TeacherDashboard() {
             />
             <div className="stat-grid">
               <StatCard label="Classes today" icon="calendar" tone="primary" value={String(kpis.classesToday)} />
-              <StatCard label="Students today" icon="users" tone="info" value={String(kpis.studentsToday)} />
+              <StatCard label="Students today" icon="users" tone="violet" value={String(kpis.studentsToday)} />
               <StatCard label="Pending attendance" icon="check" tone={kpis.pendingAttendance ? "warning" : "success"} value={String(kpis.pendingAttendance)}
                 hint={kpis.pendingAttendance ? "Classes held, not marked" : "All marked"} />
               <StatCard label="Pending marks" icon="book" tone={kpis.pendingMarks ? "warning" : "success"} value={String(kpis.pendingMarks)}
@@ -84,7 +84,7 @@ export default function TeacherDashboard() {
 
             <div className="grid-2">
               <Card title="Class attendance" subtitle="Last 28 days, by class and subject">
-                <PercentBarChart data={analytics.classPerformance} nameKey="label" valueKey="attendancePct" color="var(--chart-2)" label="Attendance" />
+                <PercentBarChart data={analytics.classPerformance} nameKey="label" valueKey="attendancePct" color="var(--chart-5)" label="Attendance" />
               </Card>
               <Card title="Class average performance" subtitle="Average marks across all exams">
                 <PercentBarChart data={analytics.classPerformance} nameKey="label" valueKey="avgMarksPct" label="Average marks" />

@@ -185,7 +185,7 @@ function AdminExams() {
               <div
                 key={exam.id}
                 className="recent-row"
-                style={{ cursor: "pointer", background: selectedExamId === exam.id ? "#f6f7f5" : "transparent" }}
+                style={{ cursor: "pointer", background: selectedExamId === exam.id ? "var(--surface-2)" : "transparent" }}
                 onClick={() => handleSelectExam(exam.id)}
               >
                 <span className="student-summary">

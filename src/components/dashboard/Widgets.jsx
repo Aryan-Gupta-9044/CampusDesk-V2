@@ -27,7 +27,7 @@ export function RecentNotices({ notices }) {
   );
 }
 
-const EVENT_TONE = { exam: "danger", meeting: "info", activity: "success", deadline: "warning", holiday: "primary", other: "muted" };
+const EVENT_TONE = { exam: "rose", meeting: "violet", activity: "success", deadline: "warning", holiday: "info", other: "muted" };
 
 export function UpcomingEvents({ events }) {
   return (

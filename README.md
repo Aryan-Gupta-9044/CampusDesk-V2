@@ -6,7 +6,11 @@ Cloud-based student management & campus productivity platform — React 18 + Vit
 ## 1. Overview & roles
 Four roles — **Student, Teacher, Parent (multi-child), Admin** — each with its own sidebar and dashboard. Routes are guarded per role (and again by database RLS). See [`docs/FEATURES.md`](docs/FEATURES.md) for exactly what is and isn't implemented.
 
-## 2. Highlights
+## 2. Accounts
+Register -> pending approval -> admin assigns role + provisions record -> active. Full details, states, security model and the required migration `008`: [`docs/AUTH_ACCOUNT_MANAGEMENT.md`](docs/AUTH_ACCOUNT_MANAGEMENT.md). Demo accounts below exist only on a fresh database; on a V1 database use your own accounts.
+
+## 2b. Highlights
+* **Light / dark / match-device themes** with a soft multi-colour palette ([`docs/THEME.md`](docs/THEME.md)).
 * Sidebar layout (collapsible), breadcrumbs, mobile drawer, notification centre, role-aware search.
 * Dashboards: today's timetable with current/next class, Action required, KPIs, analytics (Recharts), admin System health.
 * **Academic Report**: profile, IDs, class teacher, guardian, subject-wise attendance, marks, exam results, summary, print/PDF.
@@ -32,7 +36,7 @@ npm start                # http://localhost:5173
 ## 5. Database — choose ONE option
 | | Option A — existing V1 project | Option B — fresh V2 project |
 |---|---|---|
-| Run | `supabase/migrations/001 … 007` | `supabase/v2-fresh/` `schema → functions → triggers → rls → storage → seed` |
+| Run | `supabase/migrations/001 … 008` | `supabase/v2-fresh/` `schema → functions → triggers → rls → storage → seed` |
 | Data | keeps all V1 data | demo data only |
 | Safe on V1? | yes (additive) | **NO — fresh DB only** |
 

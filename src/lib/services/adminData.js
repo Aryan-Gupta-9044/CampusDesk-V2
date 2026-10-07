@@ -46,10 +46,13 @@ export async function getAdminDashboardData() {
     supabase.from("exams").select("id, name, classes ( name, section )").lte("start_date", today).order("start_date", { ascending: false }).limit(12).then(unwrap),
     head(supabase.from("exams").select("id", { count: "exact", head: true }).gt("start_date", today)),
   ]);
+  const accountCounts = await supabase.rpc("admin_account_counts").then(({ data }) => data || null);   // null until migration 008 is installed
   const statuses = await Promise.all(startedExams.map((e) => supabase.rpc("exam_result_status", { p_exam: e.id }).then(({ data }) => ({ e, data }))));
   const incompleteExams = statuses.filter((x) => x.data && Number(x.data.incomplete) > 0);
   const withTimetable = new Set(ttClasses.map((t) => t.class_id));
   const health = [
+    ...(accountCounts ? [{ key: "reg", label: "Registrations awaiting approval", count: Number(accountCounts.pending) || 0, to: "/account-requests" },
+                         { key: "inc", label: "Approved accounts with incomplete setup", count: Number(accountCounts.incomplete) || 0, to: "/account-requests" }] : []),
     { key: "noparent", label: "Students without a parent linked", count: noParent, to: "/students" },
     { key: "noclass", label: "Students without a class", count: noClass, to: "/students" },
     { key: "noteacher", label: "Classes without a class teacher", count: classes.filter((c) => !c.class_teacher_id).length, to: "/classes" },
@@ -91,6 +94,7 @@ export async function getAdminDashboardData() {
   function perClassOutstanding() { return perClass.reduce((a, c) => a + c.outstanding, 0); }
 
   return {
+    accountCounts,
     health,
     kpis: {
       students: studentCount,
@@ -117,6 +121,16 @@ export async function getAdminDashboardData() {
 }
 
 const ACTION_TEXT = {
+  account_registered: (d, who) => `${who} registered${d?.requested_role ? ` and requested a ${d.requested_role} account` : ""}`,
+  account_approved: (d, who) => `${who} approved an account${d?.role ? ` as ${d.role}` : ""}`,
+  account_rejected: (d, who) => `${who} rejected a registration`,
+  account_suspended: (d, who) => `${who} suspended an account`,
+  account_reactivated: (d, who) => `${who} reactivated an account`,
+  role_assigned: (d, who) => `${who} assigned the ${d?.role || ""} role`,
+  student_provisioned: (d, who) => `${who} provisioned a student record`,
+  teacher_provisioned: (d, who) => `${who} provisioned a teacher record`,
+  parent_linked: (d, who) => `${who} linked a parent to a student`,
+  admin_promoted: (d, who) => `${who} promoted a user to administrator`,
   post_notice: (d, who) => `${who} posted a notice${d?.title ? `: ${d.title}` : ""}`,
   request_leave: (d, who) => `${who} submitted a leave request`,
   submit_fee_payment: (d, who) => `${who} submitted a fee payment${d?.amount ? ` of ₹${d.amount}` : ""}`,

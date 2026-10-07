@@ -22,7 +22,7 @@ V1 and V2 use the **same core tables and columns** (`profiles, students, teacher
 ### Execution order (Option A)
 1. **Back up** the database.
 2. (Optional, read-only) run `supabase/audit/rls_audit.sql` and review.
-3. Run `001 → 007` from `supabase/migrations/` in order.
+3. Run `001 → 008` from `supabase/migrations/` in order.
 4. Do **not** run anything from `v2-fresh/`.
 5. Point the V2 app's `.env` at the same project.
 6. (Optional) run `900_OPTIONAL_security_hardening.sql` after reading its header.

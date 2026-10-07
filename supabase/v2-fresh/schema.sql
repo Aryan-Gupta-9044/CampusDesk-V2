@@ -413,3 +413,43 @@ create index if not exists idx_leave_requester       on public.leave_requests(re
 create index if not exists idx_audit_created         on public.audit_logs(created_at desc);
 create index if not exists idx_teacher_subjects_t    on public.teacher_subjects(teacher_id, class_id);
 create index if not exists idx_queries_teacher       on public.teacher_queries(teacher_id, status);
+
+-- ---- from migrations/008_v2_auth_account_management.sql ----
+alter table public.profiles add column if not exists created_at       timestamptz not null default now();
+alter table public.profiles add column if not exists requested_role   text;
+alter table public.profiles add column if not exists decided_by       uuid references public.profiles(id) on delete set null;
+alter table public.profiles add column if not exists decided_at       timestamptz;
+alter table public.profiles add column if not exists rejection_reason text;
+alter table public.profiles add column if not exists status_reason    text;
+
+do $$
+declare r record;
+begin
+  for r in select c.conname from pg_constraint c
+           where c.conrelid = 'public.profiles'::regclass and c.contype = 'c'
+             and pg_get_constraintdef(c.oid) ilike '%status%' loop
+    execute format('alter table public.profiles drop constraint %I', r.conname);
+  end loop;
+  alter table public.profiles add constraint profiles_status_check
+    check (status in ('pending','active','suspended','rejected','incomplete'));
+
+  if not exists (select 1 from pg_constraint where conname = 'profiles_requested_role_check') then
+    alter table public.profiles add constraint profiles_requested_role_check
+      check (requested_role is null or requested_role in ('student','parent','teacher'));
+  end if;
+
+  -- notification type for account events
+  alter table public.notifications drop constraint if exists notifications_type_check;
+  alter table public.notifications add constraint notifications_type_check
+    check (type in ('notice','result','fee','timetable','event','leave','query','attendance','account','general'));
+end $$;
+
+create index if not exists idx_profiles_status_created on public.profiles(status, created_at desc);
+
+create table if not exists public.campusdesk_settings (
+  key         text primary key,
+  value       text not null,
+  updated_at  timestamptz not null default now()
+);
+insert into public.campusdesk_settings (key, value) values ('allow_legacy_signup_role', 'false')
+  on conflict (key) do nothing;

@@ -20,3 +20,11 @@ export function safe(v, fallback = "—") {
 }
 
 export const ROLE_LABEL = { admin: "Administrator", teacher: "Teacher", student: "Student", parent: "Parent" };
+
+/** One of six soft avatar colours, stable per name (CSS classes av-0 ... av-5). */
+export function avatarClass(name) {
+  const str = String(name || "?");
+  let h = 0;
+  for (let i = 0; i < str.length; i += 1) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return `av-${h % 6}`;
+}

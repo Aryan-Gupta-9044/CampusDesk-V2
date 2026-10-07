@@ -4,7 +4,20 @@
     <meta charset="utf-8" />
     <link rel="icon" href="./favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#3730a3" />
+    <meta name="theme-color" content="#f4f1ea" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      /* apply the saved theme before first paint (prevents a light flash in dark mode) */
+      (function () {
+        try {
+          var m = localStorage.getItem("campusdesk-theme") || "system";
+          var dark = m === "dark" || (m === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+        } catch (e) { document.documentElement.dataset.theme = "light"; }
+      })();
+    </script>
     <meta name="description" content="CampusDesk V2 - cloud-based student management and campus productivity platform." />
     <title>CampusDesk</title>
   </head>

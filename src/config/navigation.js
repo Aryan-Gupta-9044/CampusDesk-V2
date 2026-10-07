@@ -60,6 +60,7 @@ export const NAV = {
   admin: [
     { label: "Dashboard", to: "/" },
     { label: "People", items: [
+      { label: "Account Requests", to: "/account-requests" },
       { label: "Students", to: "/students" },
       { label: "Teachers", to: "/teachers" },
       { label: "Parents", to: "/parents" },
@@ -104,7 +105,7 @@ export function isActivePath(pathname, to) {
 export const NAV_ICON = {
   "/": "home", "/timetable": "calendar", "/attendance": "check", "/results": "chart", "/report": "file",
   "/fees": "wallet", "/payment-history": "wallet", "/notices": "megaphone", "/events": "calendar", "/chat": "message",
-  "/documents": "inbox", "/leave": "clock", "/my-classes": "users", "/students": "users", "/teachers": "user",
+  "/documents": "inbox", "/leave": "clock", "/my-classes": "users", "/account-requests": "inbox", "/students": "users", "/teachers": "user",
   "/parents": "users", "/classes": "book", "/audit-log": "settings",
 };
 
@@ -126,7 +127,7 @@ export function breadcrumbsFor(role, pathname) {
     crumbs.push({ label: best.label, to: rest.length ? best.to : undefined });
     if (rest.length) crumbs.push({ label: rest[rest.length - 1] === "new" ? "New" : rest[rest.length - 1] === "import" ? "Import" : rest[rest.length - 1] === "report" ? "Report" : "Details" });
   } else {
-    const names = { "/profile": "My profile", "/settings": "Settings", "/notifications": "Notifications" };
+    const names = { "/pending-approval": "Pending approval", "/profile": "My profile", "/settings": "Settings", "/notifications": "Notifications" };
     crumbs.push({ label: names[pathname] || "Page" });
   }
   return crumbs;

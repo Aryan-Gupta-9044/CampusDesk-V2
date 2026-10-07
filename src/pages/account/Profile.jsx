@@ -7,7 +7,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { supabase } from "../../lib/supabaseClient";
 import { updateMyProfile } from "../../lib/queries/account";
 import { uploadAvatar } from "../../lib/storage";
-import { ROLE_LABEL, initials, safe } from "../../lib/format";
+import { ROLE_LABEL, avatarClass, initials, safe } from "../../lib/format";
 import { formatDate } from "../../lib/dates";
 import Badge from "../../components/ui/Badge";
 import Card from "../../components/ui/Card";
@@ -66,7 +66,7 @@ export default function Profile() {
         <Link className="btn btn-outline btn-sm" to="/settings">Settings &amp; password</Link></div>
       <Card>
         <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
-          <span className="avatar avatar-lg">{profile.avatar_url ? <img src={profile.avatar_url} alt={`${profile.full_name} profile`} /> : initials(profile.full_name)}</span>
+          <span className={`avatar avatar-lg ${avatarClass(profile.full_name)}`}>{profile.avatar_url ? <img src={profile.avatar_url} alt={`${profile.full_name} profile`} /> : initials(profile.full_name)}</span>
           <div>
             <h2>{profile.full_name}</h2>
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>

@@ -6,6 +6,7 @@ import { useChild } from "../../context/ChildContext";
 import { breadcrumbsFor } from "../../config/navigation";
 import Icon from "../ui/Icon";
 import GlobalSearch from "./GlobalSearch";
+import ThemeToggle from "./ThemeToggle";
 import NotificationCenter from "./NotificationCenter";
 
 export default function Topbar({ onToggleSidebar, onOpenMobile }) {
@@ -36,6 +37,7 @@ export default function Topbar({ onToggleSidebar, onOpenMobile }) {
         </div>
       )}
       <GlobalSearch />
+      <ThemeToggle />
       <NotificationCenter />
     </header>
   );

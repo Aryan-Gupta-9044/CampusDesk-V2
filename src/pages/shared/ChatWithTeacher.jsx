@@ -143,7 +143,7 @@ function ComposeAndSent({ studentId, senderId, senderRole }) {
                 </strong>
                 <small>{q.message}</small>
                 {q.reply && (
-                  <p style={{ margin: "8px 0 0", padding: "8px", background: "#f6f7f5", fontSize: "12px" }}>
+                  <p style={{ margin: "8px 0 0", padding: "8px", background: "var(--surface-2)", fontSize: "12px" }}>
                     <strong>Reply:</strong> {q.reply}
                   </p>
                 )}

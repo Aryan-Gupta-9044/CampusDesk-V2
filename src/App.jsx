@@ -1,6 +1,7 @@
 import React from "react";
-import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
+import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ChildProvider } from "./context/ChildContext";
 import { ToastProvider } from "./components/ui/Toast";
@@ -9,8 +10,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
-import Unauthorized from "./pages/auth/Unauthorized";
-import Suspended from "./pages/auth/Suspended";
+import { AccountSetupRequired, AccountSuspended, PendingApproval, RegistrationRejected, Unauthorized } from "./pages/auth/AccountStatusPages";
+import StatusRoute from "./components/account/StatusRoute";
+import AccountRequests from "./pages/admin/AccountRequests";
+import { useAuth } from "./context/AuthContext";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
@@ -46,6 +49,14 @@ import Documents from "./pages/shared/Documents";
 import ChatWithTeacher from "./pages/shared/ChatWithTeacher";
 import AcademicReport from "./pages/shared/AcademicReport";
 
+/** A password-reset link opened in this browser lands on /reset-password (hash routing keeps the rest intact). */
+function RecoveryRedirect() {
+  const { recovery } = useAuth();
+  const navigate = useNavigate();
+  React.useEffect(() => { if (recovery) navigate("/reset-password", { replace: true }); }, [recovery, navigate]);
+  return null;
+}
+
 const ALL = ["admin", "teacher", "student", "parent"];
 const guard = (roles, el) => <ProtectedRoute allowedRoles={roles}>{el}</ProtectedRoute>;
 
@@ -53,17 +64,26 @@ const guard = (roles, el) => <ProtectedRoute allowedRoles={roles}>{el}</Protecte
 // after a browser refresh, with no server-side rewrite rules needed.
 export default function App() {
   return (
+    <ThemeProvider>
     <ToastProvider>
       <AuthProvider>
         <ChildProvider>
           <HashRouter>
+            <RecoveryRedirect />
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+              <Route path="/register" element={<Signup />} />
+              <Route path="/signup" element={<Navigate to="/register" replace />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/unauthorized" element={<Unauthorized />} />
-              <Route path="/suspended" element={<Suspended />} />
+              {/* Account-state pages: only for people actually in that state (see auth/accessRules.js) */}
+              <Route path="/pending-approval" element={<StatusRoute state="pending"><PendingApproval /></StatusRoute>} />
+              <Route path="/registration-rejected" element={<StatusRoute state="rejected"><RegistrationRejected /></StatusRoute>} />
+              <Route path="/account-suspended" element={<StatusRoute state="suspended"><AccountSuspended /></StatusRoute>} />
+              <Route path="/suspended" element={<Navigate to="/account-suspended" replace />} />
+              <Route path="/account-setup-required" element={<StatusRoute state="incomplete"><AccountSetupRequired /></StatusRoute>} />
+              {/* Valid, active account trying an area its role may not use */}
+              <Route path="/unauthorized" element={<ProtectedRoute><Unauthorized /></ProtectedRoute>} />
 
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route path="/" element={<RoleRouter />} />
@@ -88,6 +108,7 @@ export default function App() {
                 <Route path="/my-classes" element={guard(["teacher"], <MyClasses />)} />
 
                 {/* Admin */}
+                <Route path="/account-requests" element={guard(["admin"], <AccountRequests />)} />
                 <Route path="/students" element={guard(["admin"], <AdminStudents />)} />
                 <Route path="/students/new" element={guard(["admin"], <AddStudent />)} />
                 <Route path="/students/import" element={guard(["admin"], <ImportStudents />)} />
@@ -109,5 +130,6 @@ export default function App() {
         </ChildProvider>
       </AuthProvider>
     </ToastProvider>
+    </ThemeProvider>
   );
 }

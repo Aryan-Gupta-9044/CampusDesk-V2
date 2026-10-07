@@ -230,3 +230,23 @@ create policy "v2 notifications delete own" on public.notifications for delete u
 -- Users may only flip is_read (not rewrite titles). Inserts come from SECURITY DEFINER triggers.
 revoke update on public.notifications from authenticated;
 grant update (is_read) on public.notifications to authenticated;
+
+-- ---- from migrations/008_v2_auth_account_management.sql ----
+alter table public.campusdesk_settings enable row level security;
+drop policy if exists "v2 settings admin" on public.campusdesk_settings;
+create policy "v2 settings admin" on public.campusdesk_settings for all using (public.is_admin()) with check (public.is_admin());
+
+-- Accounts that are not 'active' (pending / rejected / suspended / incomplete) get NO application data.
+-- RESTRICTIVE policies are AND-ed with every existing permissive policy, so V1's policies stay as they are.
+do $$
+declare r record;
+begin
+  for r in select tablename from pg_tables
+           where schemaname = 'public' and rowsecurity and tablename not in ('profiles', 'notifications', 'campusdesk_settings') loop
+    execute format('drop policy if exists v2_require_active_account on public.%I', r.tablename);
+    execute format('create policy v2_require_active_account on public.%I as restrictive for all using (public.is_active_user()) with check (public.is_active_user())', r.tablename);
+  end loop;
+end $$;
+drop policy if exists v2_profiles_active_or_self on public.profiles;
+create policy v2_profiles_active_or_self on public.profiles as restrictive for select
+  using (id = auth.uid() or public.is_active_user());

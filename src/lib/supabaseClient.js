@@ -13,4 +13,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// PKCE: email links (password reset, email confirmation) come back as ?code=... in the query string.
+// The default "implicit" flow puts tokens in the URL #fragment, which collides with the hash router (#/route).
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true, autoRefreshToken: true },
+});
